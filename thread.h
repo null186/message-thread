@@ -55,7 +55,9 @@ class Message final {
         callback_->Execute();
     }
 
-    const std::chrono::steady_clock::time_point& GetSendTime() const { return send_time_; }
+    [[nodiscard]] const std::chrono::steady_clock::time_point& GetSendTime() const {
+        return send_time_;
+    }
 
   private:
     std::shared_ptr<ICallback> callback_;
@@ -190,7 +192,7 @@ class MessageThread final {
         }
     }
 
-    std::shared_ptr<Looper> GetLooper() const { return looper_; }
+    [[nodiscard]] std::shared_ptr<Looper> GetLooper() const { return looper_; }
 
   private:
     std::shared_ptr<Looper> looper_;
