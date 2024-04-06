@@ -24,19 +24,24 @@ class ICallback {
 };
 
 template <typename F>
-class CallbackHolder : public ICallback {
+class CallbackHolder final : public ICallback {
   public:
     explicit CallbackHolder(F&& f) : _f(std::forward<F>(f)) {}
+    ~CallbackHolder() override = default;
+
+  public:
     void Execute() override { _f(); }
 
   private:
     F _f;
 };
 
-class Message {
+class Message final {
   public:
     Message() : send_time_(std::chrono::steady_clock::now()) {}
+    ~Message() = default;
 
+  public:
     template <typename F>
     void SetCallback(F&& f, std::chrono::milliseconds delay = std::chrono::milliseconds(0)) {
         callback_ = std::shared_ptr<ICallback>(new CallbackHolder<F>(std::forward<F>(f)));
@@ -66,7 +71,11 @@ struct Compare {
     }
 };
 
-class MessageQueue {
+class MessageQueue final {
+  public:
+    MessageQueue() = default;
+    ~MessageQueue() = default;
+
   public:
     bool Enqueue(const MessagePtr& message) {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -108,7 +117,11 @@ class MessageQueue {
     std::priority_queue<MessagePtr, std::vector<MessagePtr>, Compare> queue_;
 };
 
-class Looper : public std::enable_shared_from_this<Looper> {
+class Looper final : public std::enable_shared_from_this<Looper> {
+  public:
+    Looper() = default;
+    ~Looper() = default;
+
   public:
     static std::shared_ptr<Looper> MyLooper() {
         static thread_local std::shared_ptr<Looper> my_looper = std::make_shared<Looper>();
@@ -137,7 +150,11 @@ class Looper : public std::enable_shared_from_this<Looper> {
     std::shared_ptr<MessageQueue> queue_ = std::make_shared<MessageQueue>();
 };
 
-class Handler {
+class Handler final {
+  public:
+    Handler() = default;
+    ~Handler() = default;
+
   public:
     explicit Handler(const std::shared_ptr<Looper>& looper) : looper_(looper) {}
 
@@ -152,7 +169,7 @@ class Handler {
     std::shared_ptr<Looper> looper_;
 };
 
-class MessageThread {
+class MessageThread final {
   public:
     MessageThread() : looper_(Looper::MyLooper()), thread_(&MessageThread::Run, this) {}
 
@@ -163,6 +180,7 @@ class MessageThread {
         }
     }
 
+  public:
     void Run() { looper_->Loop(); }
 
     void Braking() {
