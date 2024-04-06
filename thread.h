@@ -44,7 +44,7 @@ class Message final {
   public:
     template <typename F>
     void SetCallback(F&& f, std::chrono::milliseconds delay = std::chrono::milliseconds(0)) {
-        callback_ = std::shared_ptr<ICallback>(new CallbackHolder<F>(std::forward<F>(f)));
+        callback_ = std::make_shared<CallbackHolder<F>>(std::forward<F>(f));
         send_time_ = std::chrono::steady_clock::now() + delay;
     }
 
