@@ -1,3 +1,12 @@
+/**
+ * message-thread is open source and released under the Apache License, Version 2.0.
+ * You can find a copy of this license in the `https://www.apache.org/licenses/LICENSE-2.0`.
+ *
+ * For those wishing to use message-thread under terms other than those of the Apache License, a
+ * commercial license is available. For more information on the commercial license terms and how to
+ * obtain a commercial license, please contact me.
+ */
+
 #pragma once
 
 #include <condition_variable>
