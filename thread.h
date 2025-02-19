@@ -50,10 +50,14 @@ class Message {
 
 class MessageQueue {
   public:
-    void Enqueue(const std::shared_ptr<Message>& message) {
+    bool Enqueue(const std::shared_ptr<Message>& message) {
         std::lock_guard<std::mutex> lock(mutex_);
+        if (quit_) {
+            return false;
+        }
         queue_.push(message);
         cv_.notify_all();
+        return true;
     }
 
     std::shared_ptr<Message> Next() {
@@ -118,10 +122,10 @@ class Handler {
     explicit Handler(const std::shared_ptr<Looper>& looper) : looper_(looper) {}
 
     template <typename F>
-    void Post(F f, std::chrono::milliseconds delay = std::chrono::milliseconds(0)) {
+    bool Post(F f, std::chrono::milliseconds delay = std::chrono::milliseconds(0)) {
         auto message = std::make_shared<Message>();
         message->SetCallback(std::forward<F>(f), delay);
-        looper_->GetMessageQueue()->Enqueue(message);
+        return looper_->GetMessageQueue()->Enqueue(message);
     }
 
   private:
