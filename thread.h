@@ -82,11 +82,13 @@ class MessageQueue final {
 
   public:
     bool Enqueue(const MessagePtr& message) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (quit_) {
-            return false;
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (quit_) {
+                return false;
+            }
+            queue_.push(message);
         }
-        queue_.push(message);
         cv_.notify_all();
         return true;
     }
@@ -109,8 +111,10 @@ class MessageQueue final {
     }
 
     void Quit() {
-        std::lock_guard<std::mutex> lock(mutex_);
-        quit_ = true;
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            quit_ = true;
+        }
         cv_.notify_all();
     }
 
