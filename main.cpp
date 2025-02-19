@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "thread.h"
 
 int main() {
@@ -7,12 +5,12 @@ int main() {
     auto looper = thread.GetLooper();
     Handler handler(looper);
 
-    handler.Post([]() { std::cout << "Hello world, Delay!" << std::endl; },
-                 std::chrono::seconds(100000));
-    for (int i = 0; i < 1000000; ++i) {
-        handler.Post([=]() { std::cout << "Hello world! Num = " << i << std::endl; });
+    handler.Post([]() { printf("Hello world, Delay!\n"); }, std::chrono::seconds(5));
+    for (int i = 0; i < 10; ++i) {
+        handler.Post([=]() { printf("Hello world! Num = %d\n", i); });
     }
 
-    // std::this_thread::sleep_for(std::chrono::seconds(2));
+    thread.Braking();
+
     return 0;
 }

@@ -48,9 +48,18 @@ class Message {
     std::chrono::steady_clock::time_point send_time_;
 };
 
+using MessagePtr = std::shared_ptr<Message>;
+
+struct Compare {
+    bool operator()(const MessagePtr& f1, const MessagePtr& f2) {
+        return f1->GetSendTime().time_since_epoch().count() >
+               f2->GetSendTime().time_since_epoch().count();
+    }
+};
+
 class MessageQueue {
   public:
-    bool Enqueue(const std::shared_ptr<Message>& message) {
+    bool Enqueue(const MessagePtr& message) {
         std::lock_guard<std::mutex> lock(mutex_);
         if (quit_) {
             return false;
@@ -60,20 +69,18 @@ class MessageQueue {
         return true;
     }
 
-    std::shared_ptr<Message> Next() {
+    MessagePtr Next() {
         std::unique_lock<std::mutex> lock(mutex_);
-        while (!quit_ &&
-               (queue_.empty() || queue_.top()->GetSendTime() > std::chrono::steady_clock::now())) {
+        while (queue_.empty() || queue_.top()->GetSendTime() > std::chrono::steady_clock::now()) {
             if (queue_.empty()) {
+                if (quit_) return nullptr;
                 cv_.wait(lock);
             } else {
                 auto wait_time = queue_.top()->GetSendTime() - std::chrono::steady_clock::now();
                 cv_.wait_for(lock, wait_time);
             }
         }
-        if (quit_) {
-            return nullptr;
-        }
+
         auto message = queue_.top();
         queue_.pop();
         return message;
@@ -89,7 +96,7 @@ class MessageQueue {
     bool quit_ = false;
     std::mutex mutex_;
     std::condition_variable cv_;
-    std::priority_queue<std::shared_ptr<Message>> queue_;
+    std::priority_queue<MessagePtr, std::vector<MessagePtr>, Compare> queue_;
 };
 
 class Looper : public std::enable_shared_from_this<Looper> {
@@ -102,18 +109,22 @@ class Looper : public std::enable_shared_from_this<Looper> {
     void Loop() {
         while (true) {
             auto message = queue_->Next();
-            if (!message) {
+            if (quit_ || !message) {
                 break;
             }
             message->Execute();
         }
     }
 
-    void Quit() { queue_->Quit(); }
+    void Quit() {
+        quit_ = true;
+        queue_->Quit();
+    }
 
     std::shared_ptr<MessageQueue> GetMessageQueue() { return queue_; }
 
   private:
+    std::atomic_bool quit_ = false;
     std::shared_ptr<MessageQueue> queue_ = std::make_shared<MessageQueue>();
 };
 
@@ -138,10 +149,19 @@ class MessageThread {
 
     ~MessageThread() {
         looper_->Quit();
-        thread_.join();
+        if (thread_.joinable()) {
+            thread_.join();
+        }
     }
 
     void Run() { looper_->Loop(); }
+
+    void Braking() {
+        looper_->GetMessageQueue()->Quit();
+        if (thread_.joinable()) {
+            thread_.join();
+        }
+    }
 
     std::shared_ptr<Looper> GetLooper() const { return looper_; }
 
