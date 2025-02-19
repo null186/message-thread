@@ -1,9 +1,9 @@
 #include "thread.h"
 
 int main() {
-    MessageThread thread;
+    mt::MessageThread thread;
     auto looper = thread.GetLooper();
-    Handler handler(looper);
+    mt::Handler handler(looper);
 
     handler.Post([]() { printf("Hello world, Delay!\n"); }, std::chrono::seconds(5));
     for (int i = 0; i < 10; ++i) {

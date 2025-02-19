@@ -17,6 +17,8 @@
 #include <utility>
 #include <vector>
 
+namespace mt {
+
 class ICallback {
   public:
     virtual ~ICallback() = default;
@@ -198,3 +200,5 @@ class MessageThread final {
     std::shared_ptr<Looper> looper_;
     std::thread thread_;
 };
+
+}  // namespace mt
