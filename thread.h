@@ -135,7 +135,7 @@ class Looper final : public std::enable_shared_from_this<Looper> {
     void Loop() {
         while (true) {
             auto message = queue_->Next();
-            if (quit_ || !message) {
+            if (!message || quit_) {
                 break;
             }
             message->Execute();
