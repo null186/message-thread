@@ -14,20 +14,23 @@ Message-Thread is a C++ library for managing message queues and background threa
 To use Message-Thread in your project, include the necessary headers and link against the library.
 
 ```cpp
-#include "MessageThread.h"
+#include "HandlerThread.h"
 
 int main() {
-    // Create a message thread
-    MessageThread message_thread;
+  // Create a handler thread
+  auto thread = std::make_shared<mt::HandlerThread>("my-thread");
 
-    // Create a handler
-    Handler handler(message_thread.GetLooper());
+  // Start the handler thread
+  thread->Start();
 
-    // Post a message with a callback
-    handler.Post([](){ std::cout << "Callback executed!" << std::endl; });
+  // Create a handler
+  auto handler = std::make_shared<mt::Handler>(thread->looper());
 
-    // Quit the message thread
-    message_thread.Braking();
+  // Post a message with a callback
+  handler.Post([]() { std::cout << "Callback executed!" << std::endl; });
 
-    return 0;
+  // Quit the message thread
+  thread->Quit();
+
+  return 0;
 }

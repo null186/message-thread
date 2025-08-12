@@ -1,16 +1,22 @@
+#include <iostream>
+#include <memory>
+
 #include "thread.h"
 
 int main() {
-    mt::MessageThread thread;
-    auto looper = thread.GetLooper();
-    mt::Handler handler(looper);
+  auto thread = std::make_shared<mt::HandlerThread>("my-thread");
+  thread->Start();
+//  auto handler = thread->handler();
+  auto handler = std::make_shared<mt::Handler>(thread->looper());
 
-    handler.Post([]() { printf("Hello world, Delay!\n"); }, std::chrono::seconds(5));
-    for (int i = 0; i < 10; ++i) {
-        handler.Post([=]() { printf("Hello world! Num = %d\n", i); });
-    }
+  handler->PostDelay([]() { std::cout << "Hello world, Delay!" << std::endl; },
+                     std::chrono::seconds(5));
+  for (int i = 0; i < 3; ++i) {
+    handler->Post(
+        [=]() { std::cout << "Hello world! Num = " << i << std::endl; });
+  }
 
-    thread.Braking();
+  thread->Quit();
 
-    return 0;
+  return 0;
 }
