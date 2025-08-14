@@ -15,7 +15,7 @@ int main() {
         [=]() { std::cout << "Hello world! Num = " << i << std::endl; });
   }
 
-  thread->Quit();
+  thread->QuitSafely();
 
   return 0;
 }

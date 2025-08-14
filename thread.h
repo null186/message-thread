@@ -71,9 +71,7 @@ class Message final {
     return send_time_;
   }
 
-  [[nodiscard]] const std::shared_ptr<Runnable>& runnable() const {
-    return runnable_;
-  }
+  [[nodiscard]] std::shared_ptr<Runnable> runnable() const { return runnable_; }
 
   void set_target(const std::weak_ptr<MessageHandler>& target) {
     target_ = target;
@@ -123,6 +121,7 @@ class MessageQueue final {
       }
 
       if (queue_.empty()) {
+        cv_empty_.notify_all();
         cv_.wait(lock);
         continue;
       }
@@ -136,6 +135,7 @@ class MessageQueue final {
     }
 
     if (queue_.empty()) {
+      cv_empty_.notify_all();
       return nullptr;
     }
 
@@ -145,13 +145,18 @@ class MessageQueue final {
   }
 
   void Quit() {
-    std::lock_guard lock(mutex_);
-    quit_ = true;
+    {
+      std::lock_guard lock(mutex_);
+      quit_ = true;
+    }
     cv_.notify_all();
   }
 
   void QuitSafely() {
-    // TODO: 待实现安全退出
+    {
+      std::unique_lock lock(mutex_);
+      cv_empty_.wait(lock, [this] { return queue_.empty() || quit_; });
+    }
     Quit();
   }
 
@@ -159,6 +164,7 @@ class MessageQueue final {
   bool quit_ = false;
   std::mutex mutex_;
   std::condition_variable cv_;
+  std::condition_variable cv_empty_;
   std::priority_queue<MessagePtr, std::vector<MessagePtr>, Compare> queue_;
 };
 
@@ -174,7 +180,7 @@ class Looper final : public std::enable_shared_from_this<Looper> {
   }
 
   void Loop() {
-    while (!quit_) {
+    while (true) {
       auto msg = queue_->Next();
       if (!msg) {
         break;
@@ -187,19 +193,16 @@ class Looper final : public std::enable_shared_from_this<Looper> {
   }
 
   void Quit() {
-    quit_ = true;
     queue_->Quit();
   }
 
   void QuitSafely() {
-    quit_ = true;
     queue_->QuitSafely();
   }
 
   std::shared_ptr<MessageQueue> queue() { return queue_; }
 
  private:
-  std::atomic_bool quit_ = false;
   std::shared_ptr<MessageQueue> queue_ = std::make_shared<MessageQueue>();
 };
 
