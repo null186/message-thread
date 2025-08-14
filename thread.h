@@ -254,6 +254,7 @@ class HandlerThread final {
   explicit HandlerThread(std::string name) : name_(std::move(name)) {}
 
   virtual ~HandlerThread() {
+    Quit();
     if (thread_.joinable()) {
       thread_.join();
     }
